@@ -1,0 +1,312 @@
+/**
+ * WireNPS Styles
+ * Tailwind-inspired CSS for NPS popup widget
+ */
+
+/* Overlay */
+.wirenps-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.wirenps-overlay.wirenps-show {
+    opacity: 1;
+}
+
+.wirenps-overlay.hidden {
+    display: none;
+}
+
+/* Modal */
+.wirenps-modal {
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    max-width: 640px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: wirenps-slide-up 0.3s ease;
+}
+
+@keyframes wirenps-slide-up {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Close Button */
+.wirenps-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: color 0.2s ease;
+    z-index: 10;
+}
+
+.wirenps-close:hover {
+    color: #4b5563;
+}
+
+/* Content */
+.wirenps-content {
+    padding: 32px;
+}
+
+/* Question */
+.wirenps-question {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 24px 0;
+    line-height: 1.5;
+}
+
+/* Score Buttons Container */
+.wirenps-scores {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+/* Score Buttons */
+.wirenps-score-btn {
+    min-width: 44px;
+    height: 44px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Detractor (Red) - Scores 0-6 */
+.wirenps-score-btn.wirenps-detractor {
+    background-color: #ef4444;
+}
+
+.wirenps-score-btn.wirenps-detractor:hover {
+    background-color: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Passive (Yellow) - Scores 7-8 */
+.wirenps-score-btn.wirenps-passive {
+    background-color: #eab308;
+}
+
+.wirenps-score-btn.wirenps-passive:hover {
+    background-color: #ca8a04;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Promoter (Green) - Scores 9-10 */
+.wirenps-score-btn.wirenps-promoter {
+    background-color: #22c55e;
+}
+
+.wirenps-score-btn.wirenps-promoter:hover {
+    background-color: #16a34a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Active State */
+.wirenps-score-btn.wirenps-active {
+    transform: scale(1.1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    outline: 2px solid rgba(0, 0, 0, 0.1);
+    outline-offset: 2px;
+}
+
+/* Labels */
+.wirenps-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.wirenps-label-low,
+.wirenps-label-high {
+    flex: 1;
+}
+
+.wirenps-label-low {
+    text-align: left;
+}
+
+.wirenps-label-high {
+    text-align: right;
+}
+
+/* Feedback Container */
+.wirenps-feedback-container {
+    margin-top: 24px;
+}
+
+.wirenps-feedback-container.hidden {
+    display: none;
+}
+
+/* Feedback Textarea */
+.wirenps-feedback {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    color: #111827;
+    resize: vertical;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    margin-bottom: 16px;
+}
+
+.wirenps-feedback:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.wirenps-feedback::placeholder {
+    color: #9ca3af;
+}
+
+/* Submit Button */
+.wirenps-submit {
+    width: 100%;
+    padding: 14px 24px;
+    background-color: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.wirenps-submit:hover:not(:disabled) {
+    background-color: #1d4ed8;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+}
+
+.wirenps-submit:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.wirenps-submit:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Thank You Message */
+.wirenps-thank-you {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.wirenps-thank-you.hidden {
+    display: none;
+}
+
+.wirenps-thank-you p {
+    font-size: 20px;
+    font-weight: 600;
+    color: #059669;
+    margin: 0;
+}
+
+/* Fade In Animation */
+.wirenps-fade-in {
+    animation: wirenps-fade-in 0.4s ease;
+}
+
+@keyframes wirenps-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .wirenps-modal {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .wirenps-content {
+        padding: 24px 20px;
+    }
+    
+    .wirenps-question {
+        font-size: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .wirenps-scores {
+        gap: 6px;
+    }
+    
+    .wirenps-score-btn {
+        min-width: 38px;
+        height: 38px;
+        padding: 0 10px;
+        font-size: 14px;
+    }
+    
+    .wirenps-labels {
+        font-size: 12px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .wirenps-overlay {
+        display: none !important;
+    }
+}

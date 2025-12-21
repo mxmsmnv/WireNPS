@@ -280,7 +280,7 @@
     }
     
     .wirenps-content {
-        padding: 24px 20px;
+        padding: 24px 16px;
     }
     
     .wirenps-question {
@@ -289,18 +289,48 @@
     }
     
     .wirenps-scores {
-        gap: 6px;
+        gap: 4px;
+        margin-bottom: 8px;
     }
     
     .wirenps-score-btn {
-        min-width: 38px;
-        height: 38px;
-        padding: 0 10px;
+        min-width: 30px;
+        height: 36px;
+        padding: 0 6px;
         font-size: 14px;
+        font-weight: 600;
     }
     
     .wirenps-labels {
-        font-size: 12px;
+        font-size: 11px;
+        margin-bottom: 20px;
+    }
+}
+
+/* Extra small screens - ensure buttons fit */
+@media (max-width: 375px) {
+    .wirenps-content {
+        padding: 20px 12px;
+    }
+    
+    .wirenps-question {
+        font-size: 15px;
+        margin-bottom: 16px;
+    }
+    
+    .wirenps-scores {
+        gap: 3px;
+    }
+    
+    .wirenps-score-btn {
+        min-width: 26px;
+        height: 34px;
+        padding: 0 4px;
+        font-size: 13px;
+    }
+    
+    .wirenps-labels {
+        font-size: 10px;
     }
 }
 

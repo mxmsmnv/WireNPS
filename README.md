@@ -24,12 +24,6 @@ The score ranges from -100 (all detractors) to +100 (all promoters).
 
 **Learn more:** [What is Net Promoter Score? - IBM](https://www.ibm.com/think/topics/net-promoter-score)
 
-## Screenshot
-
-![WireNPS Popup Widget](screenshot.jpg)
-
-*Clean, responsive NPS popup interface with color-coded score buttons (0-6 red, 7-8 yellow, 9-10 green)*
-
 ## Features
 
 ### 📊 Core Functionality

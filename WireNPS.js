@@ -6,8 +6,6 @@
 (function() {
     'use strict';
     
-    console.log('[WireNPS] Script loaded');
-    console.log('[WireNPS] window.wireNPSConfig available:', !!window.wireNPSConfig);
     
     // Config from PHP - always use window.wireNPSConfig directly
     const getConfig = () => window.wireNPSConfig || {
@@ -20,7 +18,6 @@
     
     const config = getConfig();
     
-    console.log('[WireNPS] Config loaded:', config);
     
     // State
     let selectedScore = null;
@@ -34,7 +31,6 @@
      * Initialize
      */
     function init() {
-        console.log('[WireNPS] Initializing...');
         
         // Set element references
         overlay = document.getElementById('wirenps-overlay');
@@ -45,7 +41,6 @@
         submitBtn = document.getElementById('wirenps-submit');
         thankYouDiv = document.querySelector('.wirenps-thank-you');
         
-        console.log('[WireNPS] Elements found:', {
             overlay: !!overlay,
             scoreButtons: scoreButtons.length,
             submitBtn: !!submitBtn
@@ -53,15 +48,12 @@
         
         // Check if already submitted via cookie (only if multiple submissions not allowed)
         if(!config.allowMultiple && getCookie('wirenps_submitted')) {
-            console.log('[WireNPS] Cookie found and multiple submissions disabled - user already submitted');
             return;
         }
         
         if(config.allowMultiple) {
-            console.log('[WireNPS] Multiple submissions allowed - ignoring cookie');
         }
         
-        console.log('[WireNPS] No cookie found or multiple allowed - will show popup in ' + config.delay + 'ms');
         
         // Show popup after delay
         setTimeout(showPopup, config.delay);
@@ -99,13 +91,10 @@
      * Show popup
      */
     function showPopup() {
-        console.log('[WireNPS] Showing popup...');
         if(overlay) {
             overlay.classList.remove('hidden');
             overlay.classList.add('wirenps-show');
-            console.log('[WireNPS] Popup displayed');
         } else {
-            console.error('[WireNPS] Overlay element not found!');
         }
     }
     
@@ -168,7 +157,6 @@
             page_id: getPageId()
         };
         
-        console.log('[WireNPS] Submitting data:', data);
         
         // Send AJAX request
         sendRating(data);
@@ -184,12 +172,6 @@
         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         
         xhr.onload = function() {
-            console.log('[WireNPS] AJAX Response received');
-            console.log('[WireNPS] Status:', xhr.status);
-            console.log('[WireNPS] Response Text LENGTH:', xhr.responseText.length);
-            console.log('[WireNPS] Response Text:', xhr.responseText);
-            console.log('[WireNPS] First char code:', xhr.responseText.charCodeAt(0));
-            console.log('[WireNPS] Last char code:', xhr.responseText.charCodeAt(xhr.responseText.length - 1));
             
             if(xhr.status === 200) {
                 try {
@@ -201,10 +183,8 @@
                         cleanResponse = cleanResponse.substring(1);
                     }
                     
-                    console.log('[WireNPS] Cleaned response:', cleanResponse);
                     
                     const response = JSON.parse(cleanResponse);
-                    console.log('[WireNPS] Parsed successfully:', response);
                     
                     if(response.success) {
                         showThankYou(response.message);
@@ -218,14 +198,10 @@
                         submitBtn.textContent = document.querySelector('.wirenps-submit').getAttribute('data-original-text') || 'Submit';
                     }
                 } catch(e) {
-                    console.error('[WireNPS] Failed to parse response:', e);
-                    console.error('[WireNPS] Response was:', xhr.responseText);
-                    console.error('[WireNPS] Response bytes:', Array.from(xhr.responseText).map(c => c.charCodeAt(0)));
                     alert('An error occurred. Please try again.');
                     submitBtn.disabled = false;
                 }
             } else {
-                console.error('[WireNPS] HTTP error:', xhr.status);
                 alert('Server error. Please try again later.');
                 submitBtn.disabled = false;
             }
@@ -286,30 +262,23 @@
      * Get current page ID
      */
     function getPageId() {
-        console.log('[WireNPS] Getting page ID...');
-        console.log('[WireNPS] window.wireNPSConfig:', window.wireNPSConfig);
-        console.log('[WireNPS] config var:', config);
         
         // Get from config (passed from PHP)
         if(window.wireNPSConfig && window.wireNPSConfig.pageId) {
             const pageId = parseInt(window.wireNPSConfig.pageId);
-            console.log('[WireNPS] Page ID from window.wireNPSConfig.pageId:', pageId);
             return pageId;
         }
         
         if(config && config.pageId) {
             const pageId = parseInt(config.pageId);
-            console.log('[WireNPS] Page ID from config.pageId:', pageId);
             return pageId;
         }
         
-        console.log('[WireNPS] No page ID in config, trying fallbacks...');
         
         // Fallback: Try to get from meta tag
         const metaTag = document.querySelector('meta[name="page-id"]');
         if(metaTag) {
             const pageId = parseInt(metaTag.content);
-            console.log('[WireNPS] Page ID from meta tag:', pageId);
             return pageId;
         }
         
@@ -317,11 +286,9 @@
         const pageIdAttr = document.body.getAttribute('data-page-id');
         if(pageIdAttr) {
             const pageId = parseInt(pageIdAttr);
-            console.log('[WireNPS] Page ID from body:', pageId);
             return pageId;
         }
         
-        console.warn('[WireNPS] No page ID found! Using 1 as default');
         return 1; // Default to homepage
     }
     
@@ -364,16 +331,13 @@
             retryCount++;
             
             if(retryCount >= MAX_RETRIES) {
-                console.error('[WireNPS] Elements not found after ' + MAX_RETRIES + ' retries. Widget HTML may not be injected.');
                 return;
             }
             
-            console.log('[WireNPS] Elements not ready yet, waiting... (retry ' + retryCount + '/' + MAX_RETRIES + ')');
             setTimeout(checkAndInit, 100);
             return;
         }
         
-        console.log('[WireNPS] Elements ready, initializing...');
         init();
     }
     

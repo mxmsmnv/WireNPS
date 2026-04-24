@@ -11,7 +11,7 @@ class ProcessWireNPS extends Process {
         return [
             'title' => 'WireNPS Statistics',
             'summary' => 'View and analyze NPS ratings',
-            'version' => '1.2.0',
+            'version' => '1.3.0',
             'author' => 'Maxim',
             'icon' => 'bar-chart',
             'requires' => 'WireNPS',
@@ -106,16 +106,59 @@ class ProcessWireNPS extends Process {
         $result = $query->fetch(\PDO::FETCH_ASSOC);
         $avgScore = $result['avg_score'] ? round($result['avg_score'], 2) : 0;
         
-        // Recent trend (last 30 days)
+        // Recent trend (last 90 days)
         $sql = "SELECT DATE(FROM_UNIXTIME(created)) as date, AVG(score) as avg_score 
                 FROM {$tableName} 
-                WHERE created >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 30 DAY))
+                WHERE created >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 90 DAY))
                 GROUP BY DATE(FROM_UNIXTIME(created))
                 ORDER BY date";
         $query = $database->prepare($sql);
         $query->execute();
         $trend = $query->fetchAll(\PDO::FETCH_ASSOC);
         
+        // Feedback rate
+        $sql = "SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN feedback IS NOT NULL AND feedback != '' THEN 1 ELSE 0 END) as with_feedback
+                FROM {$tableName}";
+        $query = $database->prepare($sql);
+        $query->execute();
+        $fbData = $query->fetch(\PDO::FETCH_ASSOC);
+        $feedbackRate = $fbData['total'] > 0 ? round(($fbData['with_feedback'] / $fbData['total']) * 100) : 0;
+
+        // Top pages by rating count
+        $sql = "SELECT page_id, COUNT(*) as cnt, AVG(score) as avg_score
+                FROM {$tableName}
+                WHERE page_id IS NOT NULL AND page_id > 0
+                GROUP BY page_id
+                ORDER BY cnt DESC
+                LIMIT 5";
+        $query = $database->prepare($sql);
+        $query->execute();
+        $topPages = $query->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Monthly breakdown (last 6 months)
+        $sql = "SELECT 
+                    DATE_FORMAT(FROM_UNIXTIME(created), '%Y-%m') as month,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN score >= 9 THEN 1 ELSE 0 END) as promoters,
+                    SUM(CASE WHEN score <= 6 THEN 1 ELSE 0 END) as detractors,
+                    ROUND((SUM(CASE WHEN score >= 9 THEN 1 ELSE 0 END) - SUM(CASE WHEN score <= 6 THEN 1 ELSE 0 END)) / COUNT(*) * 100, 1) as nps
+                FROM {$tableName}
+                WHERE created >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 6 MONTH))
+                GROUP BY DATE_FORMAT(FROM_UNIXTIME(created), '%Y-%m')
+                ORDER BY month DESC";
+        $query = $database->prepare($sql);
+        $query->execute();
+        $monthly = $query->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Last rating date
+        $sql = "SELECT created FROM {$tableName} ORDER BY created DESC LIMIT 1";
+        $query = $database->prepare($sql);
+        $query->execute();
+        $lastRow = $query->fetch(\PDO::FETCH_ASSOC);
+        $lastRating = $lastRow ? (int)$lastRow['created'] : 0;
+
         return [
             'total' => $total,
             'nps_score' => $npsScore,
@@ -124,7 +167,11 @@ class ProcessWireNPS extends Process {
             'passives' => (int)$npsData['passives'],
             'detractors' => $detractors,
             'distribution' => $distribution,
-            'trend' => $trend
+            'trend' => $trend,
+            'feedback_rate' => $feedbackRate,
+            'top_pages' => $topPages,
+            'monthly' => $monthly,
+            'last_rating' => $lastRating,
         ];
     }
 
@@ -132,83 +179,239 @@ class ProcessWireNPS extends Process {
      * Render statistics cards
      */
     protected function renderStatistics($stats) {
-        $npsColor = $this->getNPSColor($stats['nps_score']);
-        
+        $npsColor = $this->getNPSHexColor($stats['nps_score']);
+
+        // Last rating ago
+        $lastAgo = '-';
+        if($stats['last_rating']) {
+            $diff = time() - $stats['last_rating'];
+            if($diff < 3600) $lastAgo = round($diff/60) . 'm ago';
+            elseif($diff < 86400) $lastAgo = round($diff/3600) . 'h ago';
+            else $lastAgo = round($diff/86400) . 'd ago';
+        }
+
+        // Top pages rows
+        $topPagesHtml = '';
+        foreach($stats['top_pages'] as $row) {
+            $page = $row['page_id'] ? $this->wire('pages')->get((int)$row['page_id']) : null;
+            if($page && $page->id) {
+                $safeTitle = $this->wire('sanitizer')->entities($page->title);
+                $pageUrl = $page->editUrl;
+                $title = "<a href='{$pageUrl}' style='color:var(--pw-main-color);text-decoration:none;' target='_blank'>{$safeTitle}</a>";
+            } else {
+                $title = 'Page #' . $row['page_id'];
+            }
+            $avgColor = $row['avg_score'] >= 9 ? '#16a34a' : ($row['avg_score'] >= 7 ? '#ca8a04' : '#dc2626');
+            $topPagesHtml .= "<tr>
+                <td style='padding:6px 10px;border-bottom:1px solid var(--pw-border-color);color:var(--pw-text-color);font-size:13px;'>{$title}</td>
+                <td style='padding:6px 10px;border-bottom:1px solid var(--pw-border-color);text-align:center;font-weight:600;color:var(--pw-text-color);'>{$row['cnt']}</td>
+                <td style='padding:6px 10px;border-bottom:1px solid var(--pw-border-color);text-align:center;font-weight:700;color:{$avgColor};'>" . round($row['avg_score'], 1) . "</td>
+            </tr>";
+        }
+
+        // Monthly rows
+        $monthlyHtml = '';
+        foreach($stats['monthly'] as $row) {
+            $npsVal = $row['nps'];
+            $npsC = $npsVal >= 50 ? '#16a34a' : ($npsVal >= 0 ? '#ca8a04' : '#dc2626');
+            $monthlyHtml .= "<tr>
+                <td style='padding:6px 10px;border-bottom:1px solid var(--pw-border-color);color:var(--pw-muted-color);font-size:13px;'>{$row['month']}</td>
+                <td style='padding:6px 10px;border-bottom:1px solid var(--pw-border-color);text-align:center;color:var(--pw-text-color);'>{$row['total']}</td>
+                <td style='padding:6px 10px;border-bottom:1px solid var(--pw-border-color);text-align:center;color:#16a34a;font-weight:600;'>{$row['promoters']}</td>
+                <td style='padding:6px 10px;border-bottom:1px solid var(--pw-border-color);text-align:center;color:#dc2626;font-weight:600;'>{$row['detractors']}</td>
+                <td style='padding:6px 10px;border-bottom:1px solid var(--pw-border-color);text-align:center;font-weight:700;color:{$npsC};'>{$npsVal}</td>
+            </tr>";
+        }
+
         return <<<HTML
-<div class="wirenps-stats-grid">
-    <div class="wirenps-stat-card">
-        <div class="wirenps-stat-label">NPS Score</div>
-        <div class="wirenps-stat-value" style="color: {$npsColor};">{$stats['nps_score']}</div>
-        <div class="wirenps-stat-desc">{$this->getNPSRating($stats['nps_score'])}</div>
+<style>
+.wirenps-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--pw-text-color);
+}
+.wirenps-card {
+    background: var(--pw-blocks-background);
+    border: 1px solid var(--pw-border-color);
+    border-radius: 4px;
+    padding: 14px 10px;
+    text-align: center;
+    flex: 1;
+    min-width: 0;
+}
+.wirenps-card-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--pw-muted-color);
+    margin-bottom: 6px;
+    white-space: nowrap;
+}
+.wirenps-card-desc {
+    font-size: 11px;
+    color: var(--pw-muted-color);
+    margin-top: 4px;
+}
+.wirenps-cards-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.wirenps-insights {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+@media (max-width: 900px) {
+    .wirenps-cards-row { flex-wrap: wrap; }
+    .wirenps-cards-row .wirenps-card { min-width: calc(33% - 8px); }
+    .wirenps-insights { grid-template-columns: 1fr; }
+}
+.wirenps-insight-card {
+    background: var(--pw-blocks-background);
+    border: 1px solid var(--pw-border-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.wirenps-insight-card h4 {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--pw-muted-color);
+    margin: 0;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--pw-border-color);
+}
+.wirenps-insight-card table { width: 100%; border-collapse: collapse; }
+.wirenps-insight-card th {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--pw-muted-color);
+    padding: 6px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--pw-border-color);
+    background: var(--pw-main-background);
+}
+.wirenps-insight-card th:not(:first-child) { text-align: center; }
+.wirenps-charts-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+@media (max-width: 768px) { .wirenps-charts-wrap { grid-template-columns: 1fr; } }
+.wirenps-chart-card {
+    background: var(--pw-blocks-background);
+    border: 1px solid var(--pw-border-color);
+    border-radius: 4px;
+    padding: 16px;
+}
+.wirenps-chart-card h3 {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--pw-muted-color);
+    margin: 0 0 14px 0;
+}
+.wirenps-export-wrap {
+    background: var(--pw-blocks-background);
+    border: 1px solid var(--pw-border-color);
+    border-radius: 4px;
+    padding: 20px;
+    display: inline-block;
+}
+.wirenps-export-wrap p { color: var(--pw-muted-color); margin: 0 0 14px 0; font-size: 13px; }
+.wirenps-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 18px;
+    height: 34px;
+    background: var(--pw-button-background);
+    color: var(--pw-button-color) !important;
+    border: 1px solid transparent;
+    border-radius: var(--pw-button-radius);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.wirenps-btn:hover {
+    background: var(--pw-button-hover-background);
+    color: var(--pw-button-hover-color) !important;
+    text-decoration: none !important;
+}
+</style>
+
+<div class="wirenps-cards-row">
+    <div class="wirenps-card">
+        <div class="wirenps-card-label">NPS Score</div>
+        <div class="wirenps-stat-value" style="color:{$npsColor};">{$stats['nps_score']}</div>
+        <div class="wirenps-card-desc">{$this->getNPSRating($stats['nps_score'])}</div>
     </div>
-    
-    <div class="wirenps-stat-card">
-        <div class="wirenps-stat-label">Total Ratings</div>
+    <div class="wirenps-card">
+        <div class="wirenps-card-label">Total Ratings</div>
         <div class="wirenps-stat-value">{$stats['total']}</div>
-        <div class="wirenps-stat-desc">All time</div>
+        <div class="wirenps-card-desc">All time</div>
     </div>
-    
-    <div class="wirenps-stat-card">
-        <div class="wirenps-stat-label">Average Score</div>
+    <div class="wirenps-card">
+        <div class="wirenps-card-label">Avg Score</div>
         <div class="wirenps-stat-value">{$stats['avg_score']}</div>
-        <div class="wirenps-stat-desc">Out of 10</div>
+        <div class="wirenps-card-desc">Out of 10</div>
     </div>
-    
-    <div class="wirenps-stat-card">
-        <div class="wirenps-stat-label">Promoters</div>
-        <div class="wirenps-stat-value" style="color: #22c55e;">{$stats['promoters']}</div>
-        <div class="wirenps-stat-desc">Score 9-10</div>
+    <div class="wirenps-card">
+        <div class="wirenps-card-label">Promoters</div>
+        <div class="wirenps-stat-value" style="color:#16a34a;">{$stats['promoters']}</div>
+        <div class="wirenps-card-desc">Score 9–10</div>
     </div>
-    
-    <div class="wirenps-stat-card">
-        <div class="wirenps-stat-label">Passives</div>
-        <div class="wirenps-stat-value" style="color: #eab308;">{$stats['passives']}</div>
-        <div class="wirenps-stat-desc">Score 7-8</div>
+    <div class="wirenps-card">
+        <div class="wirenps-card-label">Passives</div>
+        <div class="wirenps-stat-value" style="color:#ca8a04;">{$stats['passives']}</div>
+        <div class="wirenps-card-desc">Score 7–8</div>
     </div>
-    
-    <div class="wirenps-stat-card">
-        <div class="wirenps-stat-label">Detractors</div>
-        <div class="wirenps-stat-value" style="color: #ef4444;">{$stats['detractors']}</div>
-        <div class="wirenps-stat-desc">Score 0-6</div>
+    <div class="wirenps-card">
+        <div class="wirenps-card-label">Detractors</div>
+        <div class="wirenps-stat-value" style="color:#dc2626;">{$stats['detractors']}</div>
+        <div class="wirenps-card-desc">Score 0–6</div>
+    </div>
+    <div class="wirenps-card">
+        <div class="wirenps-card-label">Feedback Rate</div>
+        <div class="wirenps-stat-value">{$stats['feedback_rate']}%</div>
+        <div class="wirenps-card-desc">Left a comment</div>
+    </div>
+    <div class="wirenps-card">
+        <div class="wirenps-card-label">Last Rating</div>
+        <div class="wirenps-stat-value" style="font-size:1.35rem;">{$lastAgo}</div>
+        <div class="wirenps-card-desc">Most recent</div>
     </div>
 </div>
 
-<style>
-.wirenps-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 20px;
-    margin: 20px 0 40px 0;
-}
-
-.wirenps-stat-card {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 20px;
-    text-align: center;
-}
-
-.wirenps-stat-label {
-    font-size: 13px;
-    color: #6b7280;
-    font-weight: 500;
-    margin-bottom: 8px;
-}
-
-.wirenps-stat-value {
-    font-size: 32px;
-    font-weight: 700;
-    margin-bottom: 4px;
-}
-
-.wirenps-stat-desc {
-    font-size: 12px;
-    color: #9ca3af;
-}
-</style>
+<div class="wirenps-insights">
+    <div class="wirenps-insight-card">
+        <h4>Top Pages</h4>
+        <table>
+            <thead><tr><th>Page</th><th>Ratings</th><th>Avg</th></tr></thead>
+            <tbody>{$topPagesHtml}</tbody>
+        </table>
+    </div>
+    <div class="wirenps-insight-card">
+        <h4>Monthly Breakdown</h4>
+        <table>
+            <thead><tr><th>Month</th><th>Ratings</th><th>Promoters</th><th>Detractors</th><th>NPS</th></tr></thead>
+            <tbody>{$monthlyHtml}</tbody>
+        </table>
+    </div>
+</div>
 HTML;
     }
+
 
     /**
      * Render ratings table
@@ -233,6 +436,7 @@ HTML;
         $total = $query->fetch(\PDO::FETCH_ASSOC)['total'];
         
         $table = $this->wire('modules')->get('MarkupAdminDataTable');
+        $table->setEncodeEntities(false);
         $table->headerRow([
             $this->_('Date'),
             $this->_('Score'),
@@ -248,10 +452,18 @@ HTML;
             $date = date('Y-m-d H:i', $rating['created']);
             
             $page = $rating['page_id'] ? $this->wire('pages')->get($rating['page_id']) : null;
-            $pageTitle = $page && $page->id ? $page->title : '-';
-            
+            $pageTitle = '-';
+            if($page && $page->id) {
+                $safeTitle = $this->wire('sanitizer')->entities($page->title);
+                $pageTitle = "<a href='{$page->editUrl}' target='_blank'>{$safeTitle}</a>";
+            }
+
             $user = $rating['user_id'] ? $this->wire('users')->get($rating['user_id']) : null;
-            $userName = $user && $user->id ? $user->name : 'Guest';
+            $userName = 'Guest';
+            if($user && $user->id && $user->id != 40) {
+                $userEditUrl = $this->wire('config')->urls->admin . 'access/users/edit/?id=' . $user->id;
+                $userName = "<a href='{$userEditUrl}'>{$user->name}</a>";
+            }
             
             $feedback = $rating['feedback'] ? $this->wire('sanitizer')->entities(substr($rating['feedback'], 0, 100)) : '-';
             
@@ -298,98 +510,95 @@ HTML;
         $fieldset->label = $this->_('Visual Analytics');
         
         $fieldset->value = <<<HTML
-<div class="wirenps-charts">
-    <div class="wirenps-chart-container">
+<div class="wirenps-charts-wrap">
+
+    <div class="wirenps-chart-card">
         <h3>Score Distribution</h3>
-        <canvas id="distributionChart"></canvas>
+        <canvas id="wirenps-dist-chart"></canvas>
     </div>
-    
-    <div class="wirenps-chart-container">
-        <h3>30-Day Trend</h3>
-        <canvas id="trendChart"></canvas>
+
+    <div class="wirenps-chart-card">
+        <h3>90-Day Trend</h3>
+        <canvas id="wirenps-trend-chart"></canvas>
     </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
-// Distribution Chart
-const distributionCtx = document.getElementById('distributionChart').getContext('2d');
-new Chart(distributionCtx, {
-    type: 'bar',
-    data: {
-        labels: {$distributionLabels},
-        datasets: [{
-            label: 'Number of Ratings',
-            data: {$distributionData},
-            backgroundColor: function(context) {
-                const score = context.parsed.x;
-                if(score <= 6) return '#ef4444';
-                if(score <= 8) return '#eab308';
-                return '#22c55e';
-            }
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { display: false }
-        },
-        scales: {
-            y: { beginAtZero: true }
-        }
-    }
-});
+(function() {
+    var distLabels = {$distributionLabels};
+    var distData   = {$distributionData};
+    var trendLabels = {$trendLabels};
+    var trendData   = {$trendData};
 
-// Trend Chart
-const trendCtx = document.getElementById('trendChart').getContext('2d');
-new Chart(trendCtx, {
-    type: 'line',
-    data: {
-        labels: {$trendLabels},
-        datasets: [{
-            label: 'Average Score',
-            data: {$trendData},
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            tension: 0.4,
-            fill: true
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { display: false }
-        },
-        scales: {
-            y: { 
-                beginAtZero: true,
-                max: 10
+    var C_GREEN  = '#16a34a';
+    var C_YELLOW = '#ca8a04';
+    var C_RED    = '#dc2626';
+    var C_MAIN   = '#eb1d61';
+    var C_GRID   = 'rgba(0,0,0,0.08)';
+    var C_TEXT   = '#888';
+
+    Chart.defaults.font.size = 12;
+
+    var distCtx = document.getElementById('wirenps-dist-chart');
+    if(distCtx) {
+        new Chart(distCtx, {
+            type: 'bar',
+            data: {
+                labels: distLabels,
+                datasets: [{
+                    data: distData,
+                    backgroundColor: distLabels.map(function(s) {
+                        return s <= 6 ? C_RED : s <= 8 ? C_YELLOW : C_GREEN;
+                    }),
+                    borderWidth: 0,
+                    borderRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: C_TEXT }, grid: { color: C_GRID } },
+                    y: { beginAtZero: true, ticks: { color: C_TEXT }, grid: { color: C_GRID } }
+                }
             }
-        }
+        });
     }
-});
+
+    var trendCtx = document.getElementById('wirenps-trend-chart');
+    if(trendCtx) {
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: 'Avg Score',
+                    data: trendData,
+                    borderColor: C_MAIN,
+                    backgroundColor: 'rgba(235,29,97,0.08)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: C_MAIN,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: C_TEXT }, grid: { color: C_GRID } },
+                    y: { beginAtZero: false, min: 0, max: 10, ticks: { color: C_TEXT }, grid: { color: C_GRID } }
+                }
+            }
+        });
+    }
+})();
 </script>
-
-<style>
-.wirenps-charts {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 30px;
-    margin-top: 20px;
-}
-
-.wirenps-chart-container {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 20px;
-}
-
-.wirenps-chart-container h3 {
-    margin-top: 0;
-    color: #111827;
-}
-</style>
 HTML;
         
         return $fieldset;
@@ -405,23 +614,13 @@ HTML;
         $exportUrl = $this->wire('page')->url . 'export/';
         
         $fieldset->value = <<<HTML
-<div class="wirenps-export">
-    <h3>Export Options</h3>
+<div class="wirenps-export-wrap">
     <p>Download all ratings data in CSV format for further analysis.</p>
-    
-    <a href="{$exportUrl}" class="ui-button ui-priority-secondary" download>
-        <i class="fa fa-download"></i> Download CSV
+    <a href="{$exportUrl}" class="wirenps-btn" download>
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-5h3V4h4v5h3l-5 5z"/><path d="M4 16h12v2H4v-2z"/></svg>
+        Download CSV
     </a>
 </div>
-
-<style>
-.wirenps-export {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 30px;
-}
-</style>
 HTML;
         
         return $fieldset;
@@ -487,12 +686,28 @@ HTML;
     }
 
     /**
-     * Get NPS color
+     * Get NPS hex color
+     */
+    protected function getNPSHexColor($score) {
+        if($score >= 50) return '#16a34a';
+        if($score >= 0)  return '#ca8a04';
+        return '#dc2626';
+    }
+
+    /**
+     * Get NPS color class (design system)
+     */
+    protected function getNPSColorClass($score) {
+        if($score >= 50) return 'wirenps-color-nps-good';
+        if($score >= 0)  return 'wirenps-color-nps-ok';
+        return 'wirenps-color-nps-bad';
+    }
+
+    /**
+     * @deprecated
      */
     protected function getNPSColor($score) {
-        if($score >= 50) return '#22c55e';
-        if($score >= 0) return '#eab308';
-        return '#ef4444';
+        return $this->getNPSHexColor($score);
     }
 
     /**

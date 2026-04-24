@@ -6,7 +6,7 @@
  * Collect NPS ratings and feedback from site visitors with a clean popup interface
  * 
  * @author Maxim
- * @version 1.0.0
+ * @version 1.3.0
  * @license MIT
  */
 
@@ -16,7 +16,7 @@ class WireNPS extends WireData implements Module, ConfigurableModule {
         return [
             'title' => 'WireNPS - Net Promoter Score',
             'summary' => 'Collect NPS ratings and feedback with a clean popup interface',
-            'version' => '1.2.0',
+            'version' => '1.3.0',
             'author' => 'Maxim',
             'icon' => 'star',
             'autoload' => true,

@@ -7,6 +7,8 @@ A comprehensive Net Promoter Score (NPS) module for ProcessWire CMS that allows 
 ![PHP](https://img.shields.io/badge/PHP-8.2+-purple.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
+If this project helps your work, consider supporting future development: [GitHub Sponsors](https://github.com/sponsors/mxmsmnv) or [smnv.org/sponsor](https://smnv.org/sponsor/).  
+
 ## What is Net Promoter Score?
 
 **Net Promoter Score (NPS)** is a widely-used customer satisfaction metric that measures customer loyalty and satisfaction on a scale of 0-10. Customers are categorized into three groups:

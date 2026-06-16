@@ -5,7 +5,7 @@
  * 
  * Collect NPS ratings and feedback from site visitors with a clean popup interface
  * 
- * @author Maxim
+ * @author Maxim Semenov <maxim@smnv.org> (smnv.org)
  * @version 1.3.0
  * @license MIT
  */
@@ -17,7 +17,8 @@ class WireNPS extends WireData implements Module, ConfigurableModule {
             'title' => 'WireNPS - Net Promoter Score',
             'summary' => 'Collect NPS ratings and feedback with a clean popup interface',
             'version' => '1.3.0',
-            'author' => 'Maxim',
+            'author' => 'Maxim Semenov',
+            'href'     => 'https://smnv.org',
             'icon' => 'star',
             'autoload' => true,
             'singular' => true,

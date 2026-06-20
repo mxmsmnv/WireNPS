@@ -2,6 +2,8 @@
 
 A comprehensive Net Promoter Score (NPS) module for ProcessWire CMS that allows you to collect customer feedback through an elegant popup interface, track ratings, and analyze customer satisfaction with detailed analytics.
 
+![WireNPS](assets/WireNPS.png)
+
 ![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
 ![ProcessWire](https://img.shields.io/badge/ProcessWire-3.0+-blue.svg)
 ![PHP](https://img.shields.io/badge/PHP-8.2+-purple.svg)

@@ -8,6 +8,7 @@
 - Added optional `loadStyles` configuration for sites that provide design-system styles.
 - Added Designsystemet-compatible classes without making Designsystemet a module dependency.
 - Removed the injected frontend configuration debug log.
+- Centralized AJAX validation and persistence in the module and added correct endpoint status codes.
 
 ## 1.3.0 — 2026-04-23
 

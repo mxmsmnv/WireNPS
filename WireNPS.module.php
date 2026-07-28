@@ -267,7 +267,7 @@ HTML;
     /**
      * Process rating submission
      */
-    protected function processSubmission() {
+    public function processSubmission() {
         // Kill ALL existing output buffers
         while(ob_get_level()) {
             ob_end_clean();

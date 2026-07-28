@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0 — 2026-07-28
+
+- Fixed a frontend JavaScript syntax error that prevented the widget from initializing.
+- Added accessible dialog semantics, focus restoration, and pressed states for score buttons.
+- Replaced presentation-only `hidden` classes with the native `hidden` attribute.
+- Added optional `loadStyles` configuration for sites that provide design-system styles.
+- Added Designsystemet-compatible classes without making Designsystemet a module dependency.
+- Removed the injected frontend configuration debug log.
+
 ## 1.3.0 — 2026-04-23
 
 ### Statistics page (ProcessWireNPS)

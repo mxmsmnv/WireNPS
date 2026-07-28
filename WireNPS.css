@@ -1,6 +1,7 @@
 /**
  * WireNPS Styles
- * Tailwind-inspired CSS for NPS popup widget
+ * Default standalone styles for the NPS popup widget.
+ * Sites may disable this file and style the semantic wirenps-* hooks themselves.
  */
 
 /* Overlay */
@@ -23,7 +24,11 @@
     opacity: 1;
 }
 
-.wirenps-overlay.hidden {
+.wirenps-overlay[hidden],
+.wirenps-feedback-container[hidden],
+.wirenps-thank-you[hidden],
+.wirenps-scores[hidden],
+.wirenps-labels[hidden] {
     display: none;
 }
 
@@ -177,10 +182,6 @@
     margin-top: 24px;
 }
 
-.wirenps-feedback-container.hidden {
-    display: none;
-}
-
 /* Feedback Textarea */
 .wirenps-feedback {
     width: 100%;
@@ -243,10 +244,6 @@
 .wirenps-thank-you {
     text-align: center;
     padding: 40px 20px;
-}
-
-.wirenps-thank-you.hidden {
-    display: none;
 }
 
 .wirenps-thank-you p {

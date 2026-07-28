@@ -26,6 +26,7 @@
     
     // Elements (will be set in init)
     let overlay, closeBtn, scoreButtons, feedbackContainer, feedbackTextarea, submitBtn, thankYouDiv;
+    let previouslyFocused = null;
     
     /**
      * Initialize
@@ -40,20 +41,10 @@
         feedbackTextarea = document.getElementById('wirenps-feedback');
         submitBtn = document.getElementById('wirenps-submit');
         thankYouDiv = document.querySelector('.wirenps-thank-you');
-        
-            overlay: !!overlay,
-            scoreButtons: scoreButtons.length,
-            submitBtn: !!submitBtn
-        });
-        
         // Check if already submitted via cookie (only if multiple submissions not allowed)
         if(!config.allowMultiple && getCookie('wirenps_submitted')) {
             return;
         }
-        
-        if(config.allowMultiple) {
-        }
-        
         
         // Show popup after delay
         setTimeout(showPopup, config.delay);
@@ -81,7 +72,7 @@
         
         // ESC key to close
         document.addEventListener('keydown', function(e) {
-            if(e.key === 'Escape' && !overlay.classList.contains('hidden')) {
+            if(e.key === 'Escape' && overlay && !overlay.hidden) {
                 hidePopup();
             }
         });
@@ -92,9 +83,11 @@
      */
     function showPopup() {
         if(overlay) {
-            overlay.classList.remove('hidden');
+            previouslyFocused = document.activeElement;
+            overlay.hidden = false;
             overlay.classList.add('wirenps-show');
-        } else {
+            const firstScore = scoreButtons[0];
+            if(firstScore) firstScore.focus();
         }
     }
     
@@ -103,8 +96,12 @@
      */
     function hidePopup() {
         if(overlay) {
-            overlay.classList.add('hidden');
             overlay.classList.remove('wirenps-show');
+            overlay.hidden = true;
+            if(previouslyFocused && typeof previouslyFocused.focus === 'function') {
+                previouslyFocused.focus();
+            }
+            previouslyFocused = null;
         }
     }
     
@@ -118,14 +115,16 @@
         // Remove active state from all buttons
         scoreButtons.forEach(function(b) {
             b.classList.remove('wirenps-active');
+            b.setAttribute('aria-pressed', 'false');
         });
         
         // Add active state to clicked button
         btn.classList.add('wirenps-active');
+        btn.setAttribute('aria-pressed', 'true');
         
         // Show feedback container
         if(feedbackContainer) {
-            feedbackContainer.classList.remove('hidden');
+            feedbackContainer.hidden = false;
             feedbackContainer.classList.add('wirenps-fade-in');
             
             // Auto-focus textarea
@@ -195,7 +194,7 @@
                     } else {
                         alert('Error: ' + (response.error || 'Unknown error'));
                         submitBtn.disabled = false;
-                        submitBtn.textContent = document.querySelector('.wirenps-submit').getAttribute('data-original-text') || 'Submit';
+                        submitBtn.textContent = submitBtn.dataset.originalText || 'Submit';
                     }
                 } catch(e) {
                     alert('An error occurred. Please try again.');
@@ -229,18 +228,18 @@
     function showThankYou(message) {
         // Hide feedback container
         if(feedbackContainer) {
-            feedbackContainer.classList.add('hidden');
+            feedbackContainer.hidden = true;
         }
         
         // Hide score buttons
         const scoresDiv = document.querySelector('.wirenps-scores');
         if(scoresDiv) {
-            scoresDiv.classList.add('hidden');
+            scoresDiv.hidden = true;
         }
         
         const labelsDiv = document.querySelector('.wirenps-labels');
         if(labelsDiv) {
-            labelsDiv.classList.add('hidden');
+            labelsDiv.hidden = true;
         }
         
         // Show thank you message
@@ -248,7 +247,7 @@
             if(message) {
                 thankYouDiv.querySelector('p').textContent = message;
             }
-            thankYouDiv.classList.remove('hidden');
+            thankYouDiv.hidden = false;
             thankYouDiv.classList.add('wirenps-fade-in');
         }
         

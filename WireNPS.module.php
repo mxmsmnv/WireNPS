@@ -6,7 +6,7 @@
  * Collect NPS ratings and feedback from site visitors with a clean popup interface
  * 
  * @author Maxim Semenov <maxim@smnv.org> (smnv.org)
- * @version 1.3.0
+ * @version 1.4.0
  * @license MIT
  */
 
@@ -16,7 +16,7 @@ class WireNPS extends WireData implements Module, ConfigurableModule {
         return [
             'title' => 'WireNPS - Net Promoter Score',
             'summary' => 'Collect NPS ratings and feedback with a clean popup interface',
-            'version' => '1.3.0',
+            'version' => '1.4.0',
             'author' => 'Maxim Semenov',
             'href'     => 'https://smnv.org',
             'icon' => 'star',
@@ -57,6 +57,7 @@ class WireNPS extends WireData implements Module, ConfigurableModule {
         $this->set('allowMultiple', false);
         $this->set('collectIP', true);
         $this->set('collectUserAgent', true);
+        $this->set('loadStyles', true);
     }
 
     /**
@@ -153,16 +154,16 @@ class WireNPS extends WireData implements Module, ConfigurableModule {
         $buttons = '';
         for($i = $this->minScore; $i <= $this->maxScore; $i++) {
             $colorClass = $this->getScoreColorClass($i);
-            $buttons .= "<button type=\"button\" class=\"wirenps-score-btn {$colorClass}\" data-score=\"{$i}\">{$i}</button>";
+            $buttons .= "<button type=\"button\" class=\"ds-button wirenps-score-btn {$colorClass}\" data-variant=\"secondary\" data-score=\"{$i}\" aria-pressed=\"false\">{$i}</button>";
         }
         
         return <<<HTML
-<div id="wirenps-overlay" class="wirenps-overlay hidden">
-    <div class="wirenps-modal">
-        <button type="button" class="wirenps-close" aria-label="Close">&times;</button>
+<div id="wirenps-overlay" class="wirenps-overlay" role="dialog" aria-modal="true" aria-labelledby="wirenps-question" hidden>
+    <div class="ds-card wirenps-modal">
+        <button type="button" class="ds-button wirenps-close" data-variant="tertiary" aria-label="Close">&times;</button>
         
         <div class="wirenps-content">
-            <h3 class="wirenps-question">{$question}</h3>
+            <h3 id="wirenps-question" class="ds-heading wirenps-question" data-size="xs">{$question}</h3>
             
             <div class="wirenps-scores">
                 {$buttons}
@@ -173,21 +174,21 @@ class WireNPS extends WireData implements Module, ConfigurableModule {
                 <span class="wirenps-label-high">{$highLabel}</span>
             </div>
             
-            <div class="wirenps-feedback-container hidden">
+            <div class="wirenps-feedback-container" hidden>
                 <textarea 
                     id="wirenps-feedback" 
-                    class="wirenps-feedback" 
+                    class="ds-input wirenps-feedback"
                     placeholder="{$placeholder}"
                     rows="4"
                 ></textarea>
                 
-                <button type="button" class="wirenps-submit" id="wirenps-submit">
+                <button type="button" class="ds-button wirenps-submit" data-variant="primary" id="wirenps-submit" data-original-text="{$submitBtn}">
                     {$submitBtn}
                 </button>
             </div>
             
-            <div class="wirenps-thank-you hidden">
-                <p>{$this->thankYouMessage}</p>
+            <div class="wirenps-thank-you" role="status" aria-live="polite" hidden>
+                <p class="ds-paragraph">{$this->thankYouMessage}</p>
             </div>
         </div>
     </div>
@@ -200,6 +201,9 @@ HTML;
      */
     protected function getAssets() {
         $moduleUrl = $this->wire('config')->urls->siteModules . 'WireNPS/';
+        $stylesheet = $this->loadStyles
+            ? "<link rel=\"stylesheet\" href=\"{$moduleUrl}WireNPS.css\">"
+            : '';
         
         $config = [
             'delay' => (int)$this->showDelay,
@@ -212,10 +216,9 @@ HTML;
         $configJson = json_encode($config);
         
         return <<<HTML
-<link rel="stylesheet" href="{$moduleUrl}WireNPS.css">
+{$stylesheet}
 <script>
 window.wireNPSConfig = {$configJson};
-console.log('[WireNPS-PHP] Config set from PHP:', window.wireNPSConfig);
 </script>
 <script src="{$moduleUrl}WireNPS.js"></script>
 HTML;
@@ -595,7 +598,7 @@ HTML;
         $field->value = isset($data['thankYouMessage']) ? $data['thankYouMessage'] : 'Thank you for your feedback!';
         $field->columnWidth = 50;
         $fieldset->add($field);
-        
+
         $inputfields->add($fieldset);
         
         // Second Language Selection
@@ -795,6 +798,14 @@ HTML;
         $field->label = __('Show to Guests (Public Mode)');
         $field->description = __('Allow non-logged in users to submit ratings (User ID will be 40 for guests)');
         if(isset($data['showToGuests']) && $data['showToGuests']) $field->checked = true;
+        $field->columnWidth = 50;
+        $fieldset->add($field);
+
+        $field = $modules->get('InputfieldCheckbox');
+        $field->name = 'loadStyles';
+        $field->label = __('Load Default Stylesheet');
+        $field->description = __('Disable when the site supplies styles for the WireNPS classes in its own design system bundle.');
+        $field->checked = !array_key_exists('loadStyles', $data) || (bool) $data['loadStyles'];
         $field->columnWidth = 50;
         $fieldset->add($field);
         

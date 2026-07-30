@@ -11,7 +11,7 @@ class ProcessWireNPS extends Process {
         return [
             'title' => 'WireNPS Statistics',
             'summary' => 'View and analyze NPS ratings',
-            'version' => '1.5.1',
+            'version' => '1.5.2',
             'author' => 'Maxim Semenov',
             'href'     => 'https://smnv.org',
             'icon' => 'bar-chart',

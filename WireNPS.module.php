@@ -6,7 +6,7 @@
  * Collect NPS ratings and feedback from site visitors with a clean popup interface
  * 
  * @author Maxim Semenov <maxim@smnv.org> (smnv.org)
- * @version 1.5.1
+ * @version 1.5.2
  * @license MIT
  */
 
@@ -16,13 +16,14 @@ class WireNPS extends WireData implements Module, ConfigurableModule {
         return [
             'title' => 'WireNPS - Net Promoter Score',
             'summary' => 'Collect NPS ratings and feedback with a clean popup interface',
-            'version' => '1.5.1',
+            'version' => '1.5.2',
             'author' => 'Maxim Semenov',
             'href'     => 'https://smnv.org',
             'icon' => 'star',
             'autoload' => true,
             'singular' => true,
-            'requires' => 'ProcessWire>=3.0.0'
+            'requires' => 'ProcessWire>=3.0.0',
+            'installs' => ['ProcessWireNPS']
         ];
     }
 
@@ -515,6 +516,36 @@ HTML;
             $this->message("Database table created successfully");
         } catch(\Exception $e) {
             $this->error("Failed to create database table: " . $e->getMessage());
+        }
+
+        $this->installAdminModule();
+    }
+
+    /**
+     * Ensure installations upgraded from releases before 1.5.2 receive the
+     * statistics Process module and its admin page.
+     */
+    public function ___upgrade($fromVersion, $toVersion): void {
+        $this->installAdminModule();
+    }
+
+    private function installAdminModule(): void {
+        $modules = $this->wire('modules');
+        $class = 'ProcessWireNPS';
+        $modules->refresh();
+        if ($modules->isInstalled($class)) return;
+
+        try {
+            $installed = $modules->install($class);
+        } catch(\Throwable $error) {
+            $modules->refresh();
+            if (!$modules->isInstalled($class)) throw $error;
+            return;
+        }
+
+        $modules->refresh();
+        if (!$installed && !$modules->isInstalled($class)) {
+            throw new WireException("Unable to install required WireNPS admin module: {$class}");
         }
     }
 

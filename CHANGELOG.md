@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.2 — 2026-07-30
+
+- Declared `ProcessWireNPS` as a required companion module.
+- Added an upgrade repair that installs the statistics Process module and
+  restores its `/setup/wirenps/` admin page on existing installations.
+
 ## 1.5.1 — 2026-07-30
 
 - Prevented the deferred GET fragment from emitting a ProcessWire session

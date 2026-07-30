@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.1 — 2026-07-30
+
+- Prevented the deferred GET fragment from emitting a ProcessWire session
+  cookie, keeping anonymous navigation eligible for CloudCache after WireNPS
+  checks whether the survey should be shown.
+- Aligned the frontend and Process module release versions.
+
 ## 1.5.0 — 2026-07-30
 
 - Made anonymous frontend rendering compatible with shared full-page caches.

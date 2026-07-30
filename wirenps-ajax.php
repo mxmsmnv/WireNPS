@@ -14,10 +14,14 @@ if(!$wirenps) {
 }
 
 if($_SERVER['REQUEST_METHOD'] === 'GET' && $input->get('action') === 'fragment') {
-    echo json_encode(
+    $payload = json_encode(
         $wirenps->renderFragment((int)$input->get('page_id')),
         JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
     );
+    // A read-only fragment must not persist a new ProcessWire session.
+    // Otherwise the wire(s) cookie makes later navigation bypass CloudCache.
+    header_remove('Set-Cookie');
+    echo $payload;
     exit;
 }
 

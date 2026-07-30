@@ -33,7 +33,7 @@ class WireNPS extends WireData implements Module, ConfigurableModule {
      */
     public function __construct() {
         parent::__construct();
-        
+
         $this->set('enabledTemplates', []);
         $this->set('minScore', 0);
         $this->set('maxScore', 10);

@@ -327,13 +327,37 @@
         const testOverlay = document.getElementById('wirenps-overlay');
         
         if(!testOverlay) {
+            if(config.fragmentUrl && retryCount === 0) {
+                retryCount++;
+                fetch(config.fragmentUrl, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json' },
+                    cache: 'no-store'
+                })
+                    .then(function(response) {
+                        if(!response.ok) throw new Error('WireNPS fragment unavailable');
+                        return response.json();
+                    })
+                    .then(function(payload) {
+                        if(!payload || !payload.available || !payload.html) return;
+                        document.body.insertAdjacentHTML('beforeend', payload.html);
+                        init();
+                    })
+                    .catch(function() {
+                        // The survey is optional. Keep the page usable when its
+                        // private fragment cannot be loaded.
+                    });
+                return;
+            }
+
             retryCount++;
             
             if(retryCount >= MAX_RETRIES) {
                 return;
             }
             
-            setTimeout(checkAndInit, 100);
+            if(!config.fragmentUrl) setTimeout(checkAndInit, 100);
             return;
         }
         

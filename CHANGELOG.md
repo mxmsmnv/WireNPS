@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0 — 2026-07-30
+
+- Made anonymous frontend rendering compatible with shared full-page caches.
+- Replaced visitor-specific server-side widget injection with a stable asset
+  bootstrap and a private `no-store` fragment request.
+- Kept duplicate-submission and guest/authentication decisions at the origin.
+- Marked both fragment and submission responses as private and non-cacheable.
+
 ## 1.4.0 — 2026-07-28
 
 - Fixed a frontend JavaScript syntax error that prevented the widget from initializing.

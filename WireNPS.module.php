@@ -6,7 +6,7 @@
  * Collect NPS ratings and feedback from site visitors with a clean popup interface
  * 
  * @author Maxim Semenov <maxim@smnv.org> (smnv.org)
- * @version 1.4.0
+ * @version 1.5.0
  * @license MIT
  */
 
@@ -16,7 +16,7 @@ class WireNPS extends WireData implements Module, ConfigurableModule {
         return [
             'title' => 'WireNPS - Net Promoter Score',
             'summary' => 'Collect NPS ratings and feedback with a clean popup interface',
-            'version' => '1.4.0',
+            'version' => '1.5.0',
             'author' => 'Maxim Semenov',
             'href'     => 'https://smnv.org',
             'icon' => 'star',
@@ -100,19 +100,15 @@ class WireNPS extends WireData implements Module, ConfigurableModule {
             return;
         }
         
-        // Check if user has already submitted
-        if(!$this->allowMultiple && $this->hasUserSubmitted()) {
-            return;
-        }
-        
         $output = $event->return;
         
-        // Add CSS and JS
-        $assets = $this->getAssets();
-        $widget = $this->getWidgetHTML();
+        // Keep full-page HTML identical for every anonymous visitor. Whether
+        // this visitor may see the widget is resolved by the private fragment
+        // endpoint after the document has loaded.
+        $assets = $this->getAssets(true);
         
         // Inject before </body>
-        $output = str_replace('</body>', $assets . $widget . '</body>', $output);
+        $output = str_replace('</body>', $assets . '</body>', $output);
         
         $event->return = $output;
     }
@@ -199,7 +195,7 @@ HTML;
     /**
      * Get CSS and JS assets
      */
-    protected function getAssets() {
+    protected function getAssets(bool $defer = false) {
         $moduleUrl = $this->wire('config')->urls->siteModules . 'WireNPS/';
         $stylesheet = $this->loadStyles
             ? "<link rel=\"stylesheet\" href=\"{$moduleUrl}WireNPS.css\">"
@@ -211,6 +207,9 @@ HTML;
             'ajaxUrl' => $this->wire('config')->urls->root . 'wirenps-ajax/', // Use dedicated page
             'pageId' => (int)$this->wire('page')->id, // Current page ID
             'allowMultiple' => (bool)$this->allowMultiple, // Allow multiple submissions
+            'fragmentUrl' => $defer
+                ? $this->wire('config')->urls->root . 'wirenps-ajax/?action=fragment&page_id=' . (int)$this->wire('page')->id
+                : '',
         ];
         
         $configJson = json_encode($config);
@@ -222,6 +221,35 @@ window.wireNPSConfig = {$configJson};
 </script>
 <script src="{$moduleUrl}WireNPS.js"></script>
 HTML;
+    }
+
+    /**
+     * Return visitor-specific widget markup for the no-store fragment endpoint.
+     */
+    public function renderFragment(int $pageId): array {
+        $page = $this->wire('pages')->get($pageId);
+        $user = $this->wire('user');
+
+        if(!$page->id || !$page->viewable() || $page->template->name === 'admin') {
+            return ['available' => false, 'html' => ''];
+        }
+
+        if(!$this->showToGuests && !$user->isLoggedin()) {
+            return ['available' => false, 'html' => ''];
+        }
+
+        if(!$this->isEnabledForTemplate($page->template->name)) {
+            return ['available' => false, 'html' => ''];
+        }
+
+        if(!$this->allowMultiple && $this->hasUserSubmitted()) {
+            return ['available' => false, 'html' => ''];
+        }
+
+        return [
+            'available' => true,
+            'html' => $this->getWidgetHTML(),
+        ];
     }
 
     /**
@@ -282,7 +310,7 @@ HTML;
         
         // Set headers before ANY output
         header('Content-Type: application/json; charset=utf-8');
-        header('Cache-Control: no-cache, must-revalidate');
+        header('Cache-Control: private, no-store, max-age=0');
         
         try {
             $input = $this->wire('input');

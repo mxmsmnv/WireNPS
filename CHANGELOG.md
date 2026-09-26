@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.3 — 2026-09-26
+
+- Preserved fractional monthly NPS values on SQLite and PostgreSQL by forcing
+  floating-point division and guarding the aggregate denominator.
+
 ## 1.5.2 — 2026-07-30
 
 - Declared `ProcessWireNPS` as a required companion module.

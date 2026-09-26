@@ -11,7 +11,7 @@ class ProcessWireNPS extends Process {
         return [
             'title' => 'WireNPS Statistics',
             'summary' => 'View and analyze NPS ratings',
-            'version' => '1.5.2',
+            'version' => '1.5.3',
             'author' => 'Maxim Semenov',
             'href'     => 'https://smnv.org',
             'icon' => 'bar-chart',
@@ -144,7 +144,7 @@ class ProcessWireNPS extends Process {
                     COUNT(*) as total,
                     SUM(CASE WHEN score >= 9 THEN 1 ELSE 0 END) as promoters,
                     SUM(CASE WHEN score <= 6 THEN 1 ELSE 0 END) as detractors,
-                    ROUND((SUM(CASE WHEN score >= 9 THEN 1 ELSE 0 END) - SUM(CASE WHEN score <= 6 THEN 1 ELSE 0 END)) / COUNT(*) * 100, 1) as nps
+                    ROUND(100.0 * (SUM(CASE WHEN score >= 9 THEN 1 ELSE 0 END) - SUM(CASE WHEN score <= 6 THEN 1 ELSE 0 END)) / NULLIF(COUNT(*), 0), 1) as nps
                 FROM {$tableName}
                 WHERE created >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 6 MONTH))
                 GROUP BY DATE_FORMAT(FROM_UNIXTIME(created), '%Y-%m')

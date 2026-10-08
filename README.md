@@ -9,11 +9,11 @@ A comprehensive Net Promoter Score (NPS) module for ProcessWire CMS that allows 
 ![PHP](https://img.shields.io/badge/PHP-8.2+-purple.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-**Author:** Maxim Semenov  
-**Website:** [smnv.org](https://smnv.org)  
+**Author:** Maxim Semenov
+**Website:** [smnv.org](https://smnv.org)
 **Email:** [maxim@smnv.org](mailto:maxim@smnv.org)
 
-If this project helps your work, consider supporting future development: [GitHub Sponsors](https://github.com/sponsors/mxmsmnv) or [smnv.org/sponsor](https://smnv.org/sponsor/).  
+If this project helps your work, consider supporting future development: [GitHub Sponsors](https://github.com/sponsors/mxmsmnv) or [smnv.org/sponsor](https://smnv.org/sponsor/).
 
 ## What is Net Promoter Score?
 
@@ -274,8 +274,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Credits
 
-**Author:** Maxim Semenov  
-**Website:** https://smnv.org  
+**Author:** Maxim Semenov
+**Website:** https://smnv.org
 
 ## Support
 
